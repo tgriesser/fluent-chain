@@ -1,0 +1,22 @@
+{
+  "name": "fluent-chain",
+  "version": "0.0.0",
+  "description": "A helper for creating nicely chained Javascript interfaces",
+  "main": "fluent-chain.js",
+  "scripts": {
+    "test": "mocha test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tgriesser/fluent-chain"
+  },
+  "keywords": [
+    "chain"
+  ],
+  "author": "Tim Griesser",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tgriesser/fluent-chain/issues"
+  },
+  "homepage": "https://github.com/tgriesser/fluent-chain"
+}
