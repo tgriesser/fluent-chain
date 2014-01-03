@@ -49,6 +49,11 @@ FluentChain.prototype.setAttribute = function(key, value) {
   return this;
 };
 
+// Add a new method to the chainable interface.
+FluentChain.attachChainable = function(name, fn) {
+  attachChainable(this, name, fn);
+};
+
 var hasProp = Object.prototype.hasOwnProperty;
 
 // Add a function to the current "FluentChain" object
@@ -76,11 +81,25 @@ function pushChain(ctx, obj) {
   return attachProps(ctx, new ctx([obj]));
 }
 
+// Ensures that the set properties are copied
+// each time the object is chained.
 function attachProps(current, target) {
-  for (var key in current.attributes) {
-    target.attributes[key] = current.attributes[key];
+  var attrs = current.attributes;
+  for (var key in attrs) {
+    if (hasProp.call(attrs, key))
+    target.attributes[key] = attrs[key];
   }
   return target;
+}
+
+// Attaches a new method to both the prototype and constructor,
+// ensuring it's called with the correct context and returns the
+// chain if another return value is not supplied.
+function attachChainable(Target, name, fn) {
+  Target[name] = Target.prototype[name] = function() {
+    var target = this instanceof FluentChain ? this : new this();
+    return fn.apply(target, arguments) || target;
+  };
 }
 
 // Placeholder constructor for creating the prototype chain.
@@ -89,7 +108,7 @@ function ctor() {}
 // Create a new "chain" object, binding the appropriate methods
 // and defining any "long-lived" properties that are assignable
 // directly to the chain.
-FluentChain.extendChain = function(methods) {
+FluentChain.extendChain = function(methods, additional) {
   var parent = this;
   function Chain() { parent.apply(this, arguments); }
   for (var key in parent) {
@@ -102,6 +121,11 @@ FluentChain.extendChain = function(methods) {
   Chain.prototype.constructor = Chain;
   for (var i = 0, l = methods.length; i < l; i++) {
     fluentMethod(Chain, methods[i]);
+  }
+  if (additional) {
+    for (key in additional) {
+      attachChainable(Chain, key, additional[key]);
+    }
   }
   return Chain;
 };
