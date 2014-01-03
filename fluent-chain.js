@@ -7,7 +7,17 @@
 
 // Create a stack of function calls, for deferred evaluation
 // of chained function calls.
-var FluentChain = function() {};
+var FluentChain = function(stack) {
+  if (!(this instanceof FluentChain)) {
+    return new this(stack);
+  }
+  this.stack = stack || [];
+  this.attributes = {};
+  if (stack instanceof FluentChain) {
+    this.stack = stack.stack.slice();
+    attachProps(stack, this);
+  }
+};
 
 // If we want to start off by chaining.
 FluentChain.chain = function() {
@@ -30,8 +40,16 @@ FluentChain.prototype.unchain = function() {
 
 // Create a fresh copy of the current "chain".
 FluentChain.prototype.cloneChain = function() {
-  return new this.constructor(this.stack.slice());
+  return attachProps(this, new this.constructor(this.stack.slice()));
 };
+
+// Set an attribute on the "attributes" hash.
+FluentChain.prototype.setAttribute = function(key, value) {
+  this.attributes[key] = value;
+  return this;
+};
+
+var hasProp = Object.prototype.hasOwnProperty;
 
 // Add a function to the current "FluentChain" object
 // as both a static and prototype method.
@@ -53,25 +71,27 @@ function pushChain(ctx, obj) {
       ctx.stack.push(obj);
       return ctx;
     }
-    return new ctx.constructor(ctx.stack.concat(obj));
+    return attachProps(ctx, new ctx.constructor(ctx.stack.concat(obj)));
   }
-  return new ctx([obj]);
+  return attachProps(ctx, new ctx([obj]));
 }
 
-var hasProp = Object.prototype.hasOwnProperty;
+function attachProps(current, target) {
+  for (var key in current.attributes) {
+    target.attributes[key] = current.attributes[key];
+  }
+  return target;
+}
 
 // Placeholder constructor for creating the prototype chain.
 function ctor() {}
 
-// Create a new "chain" object, binding the appropriate methods.
+// Create a new "chain" object, binding the appropriate methods
+// and defining any "long-lived" properties that are assignable
+// directly to the chain.
 FluentChain.extendChain = function(methods) {
   var parent = this;
-  function Chain(stack) {
-    if (!(this instanceof FluentChain)) {
-      return new this(stack);
-    }
-    this.stack = stack || [];
-  }
+  function Chain() { parent.apply(this, arguments); }
   for (var key in parent) {
     if (hasProp.call(parent, key)) {
       Chain[key] = parent[key];
