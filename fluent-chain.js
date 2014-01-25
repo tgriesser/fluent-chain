@@ -7,14 +7,14 @@
 
 // Create a stack of function calls, for deferred evaluation
 // of chained function calls.
-var FluentChain = function(stack) {
+var FluentChain = module.exports = function(stack) {
   if (!(this instanceof FluentChain)) {
     return new this(stack);
   }
-  this.stack = stack || [];
-  this.attributes = {};
+  this.__stack = stack || [];
+  this.__attributes = {};
   if (stack instanceof FluentChain) {
-    this.stack = stack.stack.slice();
+    this.__stack = stack.__stack.slice();
     attachProps(stack, this);
   }
 };
@@ -28,24 +28,24 @@ FluentChain.chain = function() {
 // internal state of the builder, rather than just chaining
 // new objects.
 FluentChain.prototype.chain = function() {
-  this._chaining = true;
+  this.__chaining = true;
   return this;
 };
 
 // Breaks the current "chain".
 FluentChain.prototype.unchain = function() {
-  this._chaining = false;
+  this.__chaining = false;
   return this;
 };
 
 // Create a fresh copy of the current "chain".
 FluentChain.prototype.cloneChain = function() {
-  return attachProps(this, new this.constructor(this.stack.slice()));
+  return attachProps(this, new this.constructor(this.__stack.slice()));
 };
 
 // Set an attribute on the "attributes" hash.
 FluentChain.prototype.setAttribute = function(key, value) {
-  this.attributes[key] = value;
+  this.__attributes[key] = value;
   return this;
 };
 
@@ -72,11 +72,11 @@ function fluentMethod(Chain, method) {
 // Adds a method to the stack.
 function pushChain(ctx, obj) {
   if (ctx instanceof FluentChain) {
-    if (ctx._chaining) {
-      ctx.stack.push(obj);
+    if (ctx.__chaining) {
+      ctx.__stack.push(obj);
       return ctx;
     }
-    return attachProps(ctx, new ctx.constructor(ctx.stack.concat(obj)));
+    return attachProps(ctx, new ctx.constructor(ctx.__stack.concat(obj)));
   }
   return attachProps(ctx, new ctx([obj]));
 }
@@ -84,10 +84,10 @@ function pushChain(ctx, obj) {
 // Ensures that the set properties are copied
 // each time the object is chained.
 function attachProps(current, target) {
-  var attrs = current.attributes;
+  var attrs = current.__attributes;
   for (var key in attrs) {
     if (hasProp.call(attrs, key))
-    target.attributes[key] = attrs[key];
+    target.__attributes[key] = attrs[key];
   }
   return target;
 }
@@ -129,5 +129,3 @@ FluentChain.extendChain = function(methods, additional) {
   }
   return Chain;
 };
-
-module.exports = FluentChain;
